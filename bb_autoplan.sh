@@ -79,6 +79,14 @@ if [ -f .env ]; then
   source .env
 fi
 
+source .env 
+  
+ export BLACKBOX_API_KEY 
+  
+ # Get task description 
+  
+ TASK="$1"
+
 # Check for BLACKBOX_API_KEY
 if [ -z "$BLACKBOX_API_KEY" ]; then
   echo "Error: BLACKBOX_API_KEY environment variable is not set."
