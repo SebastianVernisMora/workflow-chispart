@@ -117,7 +117,8 @@ echo "Analyzing codebase..."
 # Generate tree output (try tree command if available)
 if command -v tree &> /dev/null; then
   if [ -n "$EXCLUDE_PATTERNS" ]; then
-    TREE_OUTPUT=$(tree -a -I "$EXCLUDE_PATTERNS" -L 3)
+    TREE_PATTERNS=$(echo "$EXCLUDE_PATTERNS" | tr ',' '|')
+    TREE_OUTPUT=$(tree -a -I "$TREE_PATTERNS" -L 3)
   else
     TREE_OUTPUT=$(tree -a -L 3)
   fi
