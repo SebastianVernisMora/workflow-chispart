@@ -162,46 +162,52 @@ AI_PLAN=$(./adapters/blackbox_api_curl.sh "$SYSTEM_PROMPT
 $CONTEXT_PROMPT
 $USER_PROMPT")
 
-# Save plan to a temporary markdown file
-TMP_PLAN_FILE="/tmp/propuesta_plan.md"
+# Save plan to a temporary JSON file
+TMP_PLAN_FILE="/tmp/propuesta_plan.json"
 echo "$AI_PLAN" > "$TMP_PLAN_FILE"
 
 # --- Human-in-the-Loop Validation ---
 
 while true; do
     echo ""
-    echo "AI plan proposal has been saved to: $TMP_PLAN_FILE"
-    echo "Please review the plan. You can edit it in your preferred editor."
-    read -rp "Do you want to [c]ontinue with the plan, [e]dit it, or [a]bort the process? " choice
+    # Pretty-print the JSON for better readability if jq is available
+    if command -v jq &> /dev/null; then
+        echo "AI plan proposal (preview):"
+        jq . "$TMP_PLAN_FILE"
+    fi
+    echo ""
+    echo "The full plan has been saved to: $TMP_PLAN_FILE"
+    echo "You can view or edit it using your preferred editor."
+    read -rp "Do you want to [c]ontinue with this plan, [e]dit the file, or [a]bort the process? " choice
 
     case "$choice" in
         c|C )
             echo "Plan approved. Continuing execution..."
-            # Placeholder for the next step in the workflow
-            # For example: ./execute_plan.sh "$TMP_PLAN_FILE"
+            ./setup_workflow.sh
             break
             ;;
         e|E )
-            # Open the file with the default editor, fallback to nano or vi
-            if [ -n "${EDITOR:-}" ]; then
-                "$EDITOR" "$TMP_PLAN_FILE"
-            elif command -v nano &> /dev/null; then
-                nano "$TMP_PLAN_FILE"
-            elif command -v vi &> /dev/null; then
-                vi "$TMP_PLAN_FILE"
+            if [ -z "${EDITOR:-}" ]; then
+                echo "Error: \$EDITOR environment variable is not set."
+                echo "Please set it to your preferred editor (e.g., 'nano', 'vim', 'code')."
+                # Offer to open with common editors as a fallback
+                read -rp "Open with [n]ano, [v]i, or [a]bort? " editor_choice
+                case "$editor_choice" in
+                    n|N) nano "$TMP_PLAN_FILE" ;;
+                    v|V) vi "$TMP_PLAN_FILE" ;;
+                    *) echo "Aborting edit."; continue ;;
+                esac
             else
-                echo "No suitable editor found. Please set the \$EDITOR environment variable."
-                echo "Aborting."
-                exit 1
+                "$EDITOR" "$TMP_PLAN_FILE"
             fi
-            echo "File edited. Please review again."
+            echo "File edited. Please review the changes and decide again."
             ;;
         a|A )
-            echo "Operation aborted by the user."
+            echo "Operation cancelled by the user."
             exit 0
             ;;
         * )
-            echo "Invalid option. Please enter 'c', 'e', or 'a'."
+            echo "Invalid option. Please choose 'c' for continue, 'e' for edit, or 'a' for cancel."
             ;;
     esac
 done
